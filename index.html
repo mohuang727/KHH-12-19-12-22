@@ -9,44 +9,40 @@
     <!-- 引入 Phosphor Icons (圖示庫) -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
-        /* 隱藏捲軸但保留功能 */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background-color: #f8fafc; /* slate-50 */
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f8fafc; }
+        /* Modal 動畫 */
+        .modal { transition: opacity 0.25s ease; }
+        body.modal-active { overflow-x: hidden; overflow-y: hidden !important; }
     </style>
 </head>
 <body class="text-slate-800">
 
-    <div class="max-w-md mx-auto bg-slate-50 min-h-screen shadow-xl border-x border-slate-200 pb-20 relative">
+    <div class="max-w-md mx-auto bg-slate-50 min-h-screen shadow-xl border-x border-slate-200 pb-24 relative">
         
         <!-- Header -->
         <div class="bg-white sticky top-0 z-20 border-b border-slate-200 shadow-sm">
-            <div class="p-4 bg-indigo-600 text-white">
-                <h1 class="text-xl font-bold flex items-center gap-2">
-                    <i class="ph-fill ph-navigation-arrow text-2xl"></i>
-                    高雄微醺聽團之旅
-                </h1>
-                <p class="text-indigo-200 text-sm mt-1">12/19 - 12/22 行程表</p>
+            <div class="p-4 bg-indigo-600 text-white flex justify-between items-center">
+                <div>
+                    <h1 class="text-xl font-bold flex items-center gap-2">
+                        <i class="ph-fill ph-navigation-arrow text-2xl"></i>
+                        高雄微醺聽團之旅
+                    </h1>
+                    <p class="text-indigo-200 text-sm mt-1">12/19 - 12/22 行程表</p>
+                </div>
+                <!-- Reset Button (清除所有新增的資料) -->
+                <button onclick="clearCustomData()" class="text-indigo-300 hover:text-white text-xs underline">重置行程</button>
             </div>
             
             <!-- Date Tabs -->
-            <div id="date-tabs" class="flex overflow-x-auto no-scrollbar">
-                <!-- Tabs will be injected here -->
-            </div>
+            <div id="date-tabs" class="flex overflow-x-auto no-scrollbar"></div>
         </div>
 
         <!-- Content Area -->
         <div class="p-4">
             
-            <!-- Day 2 Toggle (Hidden by default) -->
+            <!-- Day 2 Toggle -->
             <div id="day2-toggle" class="hidden mb-6 bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex">
                 <button onclick="setDay2Plan('A')" id="btn-plan-a" class="flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all">
                     方案 A: 旗津/駁二
@@ -58,10 +54,7 @@
 
             <!-- Timeline Container -->
             <div class="space-y-4 relative">
-                <!-- Vertical Line -->
                 <div class="absolute left-4 top-2 bottom-4 w-0.5 bg-slate-200 z-0"></div>
-                
-                <!-- Timeline Items injected here -->
                 <div id="timeline-list"></div>
             </div>
 
@@ -73,11 +66,84 @@
                 <p id="footer-msg" class="text-slate-400 text-sm mt-2">今天的行程結束了，晚安！</p>
             </div>
         </div>
+
+        <!-- Floating Action Button (Add) -->
+        <button onclick="openModal()" class="fixed bottom-6 right-6 md:right-[calc(50%-200px)] w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 z-30">
+            <i class="ph-bold ph-plus text-2xl"></i>
+        </button>
+    </div>
+
+    <!-- Modal for Adding Item -->
+    <div id="add-modal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50" onclick="closeModal()"></div>
+        
+        <div class="modal-container bg-white w-11/12 max-w-sm mx-auto rounded-xl shadow-2xl z-50 overflow-y-auto transform transition-all scale-95 opacity-0 duration-300" id="modal-content">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-700">新增行程</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="ph-bold ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-4 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                     <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">日期</label>
+                        <select id="input-date" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-indigo-500">
+                            <option value="12/19">12/19 (五)</option>
+                            <option value="12/20">12/20 (六)</option>
+                            <option value="12/21">12/21 (日)</option>
+                            <option value="12/22">12/22 (一)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">時間</label>
+                        <input type="time" id="input-time" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+               
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">標題</label>
+                    <input type="text" id="input-title" placeholder="例如：買飲料" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-indigo-500">
+                </div>
+                
+                <!-- Location with GPS Button -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">地點 / 定位</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="input-location" placeholder="輸入地點或點擊定位" class="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-indigo-500">
+                        <button onclick="getCurrentLocation()" class="bg-indigo-100 text-indigo-600 px-3 rounded-lg hover:bg-indigo-200 transition-colors flex items-center justify-center" title="取得目前位置">
+                            <i class="ph-fill ph-crosshair text-lg"></i>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1">* 點擊右側按鈕可自動填入當前經緯度</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">備註 (選填)</label>
+                    <input type="text" id="input-note" placeholder="備註事項" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">類型</label>
+                    <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1" id="type-selector">
+                        <button onclick="selectType(this, 'food')" class="type-btn flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold bg-white text-slate-500 border border-slate-200 transition-all" data-type="food">食物</button>
+                        <button onclick="selectType(this, 'travel')" class="type-btn flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold bg-white text-slate-500 border border-slate-200 transition-all" data-type="travel">景點</button>
+                        <button onclick="selectType(this, 'art')" class="type-btn flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold bg-white text-slate-500 border border-slate-200 transition-all" data-type="art">藝文</button>
+                        <button onclick="selectType(this, 'bar')" class="type-btn flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold bg-white text-slate-500 border border-slate-200 transition-all" data-type="bar">酒吧</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 rounded-b-xl flex justify-end gap-2">
+                <button onclick="closeModal()" class="px-4 py-2 text-sm text-slate-500 font-medium hover:text-slate-700">取消</button>
+                <button onclick="saveNewItem()" class="px-4 py-2 text-sm bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 shadow-md">儲存行程</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // --- Data ---
-        const scheduleData = {
+        // --- Default Data ---
+        const defaultSchedule = {
             '12/19': [
                 { id: '1-1', time: '14:00', title: '抵達高雄', location: '左營/高雄車站', type: 'travel', icon: 'ph-train', note: '前往蜜桃家放行李' },
                 { id: '1-2', time: '16:00', title: '內惟藝術中心', location: '鼓山區馬卡道路329號', type: 'art', icon: 'ph-camera', note: '純白建築好拍，可逛展或看電影' },
@@ -121,11 +187,12 @@
             ]
         };
 
-        // --- State ---
+        // --- State Management ---
         let activeTab = '12/19';
         let day2Plan = 'A'; // 'A' or 'B'
-        // Load completed items from local storage if available
         let completedItems = new Set(JSON.parse(localStorage.getItem('kaohsiungTripCompleted') || '[]'));
+        let customItems = JSON.parse(localStorage.getItem('kaohsiungTripCustomItems') || '{}');
+        let selectedType = 'food'; // for modal
 
         // --- Render Functions ---
 
@@ -133,7 +200,7 @@
             const tabsContainer = document.getElementById('date-tabs');
             tabsContainer.innerHTML = '';
             
-            Object.keys(scheduleData).forEach(date => {
+            Object.keys(defaultSchedule).forEach(date => {
                 const btn = document.createElement('button');
                 const isActive = activeTab === date;
                 btn.className = `flex-1 py-3 px-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 ${
@@ -157,8 +224,6 @@
 
             if (activeTab === '12/20') {
                 toggleContainer.classList.remove('hidden');
-                
-                // Update button styles based on day2Plan
                 if (day2Plan === 'A') {
                     btnA.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all bg-indigo-100 text-indigo-700 shadow-sm';
                     btnB.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all text-slate-400 hover:text-slate-600';
@@ -171,16 +236,23 @@
             }
         }
 
-        function renderFooter() {
-             const footerMsg = document.getElementById('footer-msg');
-             footerMsg.innerText = activeTab === '12/22' ? '旅程結束，期待下次相見！' : '今天的行程結束了，晚安！';
-        }
-
         function getDayList() {
+            // Merge default schedule with custom items for the active day
+            let currentDayItems = [];
+            
             if (activeTab === '12/20') {
-                return [...scheduleData['12/20'].options[day2Plan], ...scheduleData['12/20'].evening];
+                currentDayItems = [...defaultSchedule['12/20'].options[day2Plan], ...defaultSchedule['12/20'].evening];
+            } else {
+                currentDayItems = [...defaultSchedule[activeTab]];
             }
-            return scheduleData[activeTab];
+
+            // Add custom items if they exist for this day
+            if (customItems[activeTab]) {
+                currentDayItems = [...currentDayItems, ...customItems[activeTab]];
+            }
+
+            // Sort by time
+            return currentDayItems.sort((a, b) => a.time.localeCompare(b.time));
         }
 
         function getTypeColor(type) {
@@ -196,15 +268,27 @@
             }
         }
 
+        function getTypeIcon(type) {
+             switch (type) {
+                case 'food': return 'ph-fork-knife';
+                case 'music': return 'ph-music-notes';
+                case 'art': return 'ph-camera';
+                case 'bar': return 'ph-martini';
+                case 'work': return 'ph-briefcase';
+                case 'travel': return 'ph-train';
+                case 'sleep': return 'ph-moon';
+                default: return 'ph-circle';
+            }
+        }
+
         function toggleComplete(id) {
             if (completedItems.has(id)) {
                 completedItems.delete(id);
             } else {
                 completedItems.add(id);
             }
-            // Save to local storage
             localStorage.setItem('kaohsiungTripCompleted', JSON.stringify([...completedItems]));
-            renderTimeline(); // Re-render only timeline for performance, though full re-render is fine here
+            renderTimeline();
         }
 
         function openMap(location) {
@@ -214,6 +298,134 @@
         function setDay2Plan(plan) {
             day2Plan = plan;
             renderApp();
+        }
+
+        // --- Add Item Logic ---
+        function openModal() {
+            const modal = document.getElementById('add-modal');
+            const content = document.getElementById('modal-content');
+            document.getElementById('input-date').value = activeTab; // Set default date to current tab
+            
+            modal.classList.remove('pointer-events-none', 'opacity-0');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            
+            // Default type selection
+            selectType(document.querySelector('[data-type="food"]'), 'food');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('add-modal');
+            const content = document.getElementById('modal-content');
+            
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('pointer-events-none', 'opacity-0');
+            }, 300);
+            
+            // Clear inputs
+            document.getElementById('input-title').value = '';
+            document.getElementById('input-location').value = '';
+            document.getElementById('input-note').value = '';
+            document.getElementById('input-time').value = '';
+        }
+
+        function selectType(btn, type) {
+            selectedType = type;
+            // Reset all buttons
+            document.querySelectorAll('#type-selector .type-btn').forEach(b => {
+                b.className = 'type-btn flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold bg-white text-slate-500 border border-slate-200 transition-all';
+            });
+            // Highlight selected
+            let colorClass = '';
+            if(type === 'food') colorClass = 'bg-orange-100 text-orange-600 border-orange-200 ring-1 ring-orange-300';
+            else if(type === 'travel') colorClass = 'bg-blue-100 text-blue-600 border-blue-200 ring-1 ring-blue-300';
+            else if(type === 'art') colorClass = 'bg-teal-100 text-teal-600 border-teal-200 ring-1 ring-teal-300';
+            else if(type === 'bar') colorClass = 'bg-indigo-100 text-indigo-600 border-indigo-200 ring-1 ring-indigo-300';
+            
+            btn.className = `type-btn flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold transition-all ${colorClass}`;
+        }
+
+        function getCurrentLocation() {
+            const btn = document.querySelector('button[onclick="getCurrentLocation()"]');
+            const icon = btn.querySelector('i');
+            const originalIconClass = icon.className;
+            
+            if (!navigator.geolocation) {
+                alert('您的瀏覽器不支援定位功能');
+                return;
+            }
+
+            // Loading state
+            icon.className = 'ph ph-spinner animate-spin text-lg';
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    // Format to 6 decimal places for precision but cleaner look
+                    const lat = latitude.toFixed(6);
+                    const lng = longitude.toFixed(6);
+                    document.getElementById('input-location').value = `${lat}, ${lng}`;
+                    icon.className = 'ph-fill ph-check text-lg text-green-600';
+                    setTimeout(() => icon.className = originalIconClass, 2000);
+                },
+                (error) => {
+                    console.error(error);
+                    alert('無法取得位置。請確認您已允許瀏覽器存取位置資訊。');
+                    icon.className = originalIconClass;
+                }
+            );
+        }
+
+        function saveNewItem() {
+            const date = document.getElementById('input-date').value;
+            const time = document.getElementById('input-time').value;
+            const title = document.getElementById('input-title').value;
+            const location = document.getElementById('input-location').value;
+            const note = document.getElementById('input-note').value;
+
+            if (!time || !title) {
+                alert('請至少填寫時間和標題！');
+                return;
+            }
+
+            const newItem = {
+                id: 'custom-' + Date.now(),
+                time,
+                title,
+                location: location || '-',
+                type: selectedType,
+                icon: getTypeIcon(selectedType),
+                note,
+                isCustom: true
+            };
+
+            // Initialize array for this date if not exists
+            if (!customItems[date]) {
+                customItems[date] = [];
+            }
+
+            customItems[date].push(newItem);
+            localStorage.setItem('kaohsiungTripCustomItems', JSON.stringify(customItems));
+            
+            closeModal();
+            // Switch to the date of the new item if different
+            if (activeTab !== date) {
+                activeTab = date;
+            }
+            renderApp();
+        }
+
+        function clearCustomData() {
+            if(confirm('確定要清除所有您手動新增的行程嗎？(預設行程會保留)')) {
+                localStorage.removeItem('kaohsiungTripCustomItems');
+                customItems = {};
+                renderApp();
+            }
         }
 
         function renderTimeline() {
@@ -228,7 +440,7 @@
                 const wrapper = document.createElement('div');
                 wrapper.className = `relative z-10 pl-10 transition-all duration-300 ${isCompleted ? 'opacity-50 grayscale' : ''}`;
 
-                // Checkbox Button
+                // Checkbox
                 const checkBtn = document.createElement('button');
                 checkBtn.className = `absolute left-0 top-1.5 w-8 h-8 rounded-full flex items-center justify-center border-2 bg-white transition-colors ${
                     isCompleted 
@@ -242,19 +454,20 @@
                 const card = document.createElement('div');
                 card.className = `bg-white rounded-xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow ${item.highlight ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''}`;
 
-                // Card Header
+                // Header
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'flex justify-between items-start mb-2';
                 
-                // Time & Tag
                 const timeTagDiv = document.createElement('div');
                 timeTagDiv.className = 'flex items-center gap-2';
                 timeTagDiv.innerHTML = `<span class="px-2 py-1 rounded text-xs font-bold border ${getTypeColor(item.type)}">${item.time}</span>`;
                 if (item.highlight) {
                     timeTagDiv.innerHTML += `<span class="flex items-center gap-1 text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold">★ 重點</span>`;
                 }
+                if (item.isCustom) {
+                     timeTagDiv.innerHTML += `<span class="flex items-center gap-1 text-[10px] bg-indigo-50 text-indigo-400 px-1.5 py-0.5 rounded-full border border-indigo-100">新增</span>`;
+                }
 
-                // Map Button
                 const mapBtn = document.createElement('button');
                 mapBtn.className = 'text-slate-400 hover:text-blue-500 transition-colors';
                 mapBtn.title = '在 Google Maps 開啟';
@@ -271,9 +484,9 @@
 
                 // Location
                 let locationDiv = '';
-                if (item.location !== '-') {
-                    locationDiv = `<div class="flex items-center gap-1 text-slate-500 text-xs mb-2">
-                        <i class="ph-fill ph-map-pin"></i> ${item.location}
+                if (item.location && item.location !== '-') {
+                    locationDiv = `<div class="flex items-center gap-1 text-slate-500 text-xs mb-2 truncate">
+                        <i class="ph-fill ph-map-pin flex-shrink-0"></i> ${item.location}
                     </div>`;
                 }
 
@@ -285,7 +498,6 @@
                     </div>`;
                 }
 
-                // Assemble Card
                 card.appendChild(headerDiv);
                 card.appendChild(title);
                 if(locationDiv) card.innerHTML += locationDiv;
@@ -297,15 +509,15 @@
             });
         }
 
-        // --- Main Render Loop ---
+        // --- Init ---
         function renderApp() {
             renderTabs();
             renderDay2Toggle();
             renderTimeline();
-            renderFooter();
+            const footerMsg = document.getElementById('footer-msg');
+            footerMsg.innerText = activeTab === '12/22' ? '旅程結束，期待下次相見！' : '今天的行程結束了，晚安！';
         }
 
-        // Initialize
         renderApp();
 
     </script>
