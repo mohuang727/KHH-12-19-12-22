@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高雄微醺聽團之旅</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Phosphor Icons (圖示庫) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* 隱藏捲軸但保留功能 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="max-w-md mx-auto bg-slate-50 min-h-screen shadow-xl border-x border-slate-200 pb-20 relative">
+        
+        <!-- Header -->
+        <div class="bg-white sticky top-0 z-20 border-b border-slate-200 shadow-sm">
+            <div class="p-4 bg-indigo-600 text-white">
+                <h1 class="text-xl font-bold flex items-center gap-2">
+                    <i class="ph-fill ph-navigation-arrow text-2xl"></i>
+                    高雄微醺聽團之旅
+                </h1>
+                <p class="text-indigo-200 text-sm mt-1">12/19 - 12/22 行程表</p>
+            </div>
+            
+            <!-- Date Tabs -->
+            <div id="date-tabs" class="flex overflow-x-auto no-scrollbar">
+                <!-- Tabs will be injected here -->
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="p-4">
+            
+            <!-- Day 2 Toggle (Hidden by default) -->
+            <div id="day2-toggle" class="hidden mb-6 bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex">
+                <button onclick="setDay2Plan('A')" id="btn-plan-a" class="flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all">
+                    方案 A: 旗津/駁二
+                </button>
+                <button onclick="setDay2Plan('B')" id="btn-plan-b" class="flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all">
+                    方案 B: 動物園/高流
+                </button>
+            </div>
+
+            <!-- Timeline Container -->
+            <div class="space-y-4 relative">
+                <!-- Vertical Line -->
+                <div class="absolute left-4 top-2 bottom-4 w-0.5 bg-slate-200 z-0"></div>
+                
+                <!-- Timeline Items injected here -->
+                <div id="timeline-list"></div>
+            </div>
+
+            <!-- Footer Message -->
+            <div class="mt-8 text-center pb-8">
+                <div class="inline-block p-3 rounded-full bg-slate-100 text-slate-400">
+                    <i class="ph-fill ph-moon text-2xl"></i>
+                </div>
+                <p id="footer-msg" class="text-slate-400 text-sm mt-2">今天的行程結束了，晚安！</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Data ---
+        const scheduleData = {
+            '12/19': [
+                { id: '1-1', time: '14:00', title: '抵達高雄', location: '左營/高雄車站', type: 'travel', icon: 'ph-train', note: '前往蜜桃家放行李' },
+                { id: '1-2', time: '16:00', title: '內惟藝術中心', location: '鼓山區馬卡道路329號', type: 'art', icon: 'ph-camera', note: '純白建築好拍，可逛展或看電影' },
+                { id: '1-3', time: '18:00', title: 'DDC 餐酒館', location: '鼓山區昌盛路302號', type: 'food', icon: 'ph-fork-knife', note: '🔥 建議提前訂位', highlight: true },
+                { id: '1-4', time: '20:00', title: '南喃 Nan Nan 工作', location: '新興區南華路101號', type: 'work', icon: 'ph-briefcase', note: '工作兩小時，處理公務' },
+                { id: '1-5', time: '22:30', title: '六合夜市', location: '六合二路', type: 'food', icon: 'ph-moon', note: '工作後補充能量' },
+                { id: '1-6', time: '23:30', title: '浪際 WAVESTELLAR', location: '大港倉七庫', type: 'bar', icon: 'ph-music-notes', note: '港邊夜景調酒，享受氛圍' },
+                { id: '1-7', time: '深夜', title: '回蜜桃家', location: '蜜桃家', type: 'sleep', icon: 'ph-moon' },
+            ],
+            '12/20': {
+                options: {
+                    'A': [
+                        { id: '2A-1', time: '13:00', title: '旗津漫遊', location: '旗津', type: 'travel', icon: 'ph-sun', note: '搭渡輪、看海、吃海鮮' },
+                        { id: '2A-2', time: '15:00', title: '鹽埕第一公有市場', location: '鹽埕區', type: 'food', icon: 'ph-fork-knife', note: '文青小店、甜點' },
+                        { id: '2A-3', time: '16:30', title: '駁二藝術特區', location: '駁二', type: 'art', icon: 'ph-camera', note: '逛大義倉庫群' },
+                    ],
+                    'B': [
+                        { id: '2B-1', time: '13:00', title: '壽山動物園', location: '壽山', type: 'travel', icon: 'ph-sun', note: '看水豚、搭遊園小火車' },
+                        { id: '2B-2', time: '16:00', title: '高雄流行音樂中心', location: '真愛碼頭', type: 'art', icon: 'ph-camera', note: '海音館建築、港灣散步' },
+                    ]
+                },
+                evening: [
+                    { id: '2-4', time: '18:00', title: '自強夜市晚餐', location: '苓雅市場/自強夜市', type: 'food', icon: 'ph-fork-knife', note: '在地美食多：南豐魯肉飯、水餃' },
+                    { id: '2-5', time: '19:30', title: '中央公園聽團', location: '中央公園', type: 'music', icon: 'ph-music-notes', note: '🎄 2025高雄聖誕生活節', highlight: true },
+                    { id: '2-6', time: '22:00', title: 'OFFLINE 喝酒', location: '新興區玉竹二街44號', type: 'bar', icon: 'ph-music-notes', note: '茶酒館，氣氛佳' },
+                    { id: '2-7', time: '深夜', title: '回蜜桃家', location: '蜜桃家', type: 'sleep', icon: 'ph-moon' },
+                ]
+            },
+            '12/21': [
+                { id: '3-1', time: '09:00', title: '早餐：興隆居', location: '前金區六合二路186號', type: 'food', icon: 'ph-fork-knife', note: '必點湯包、燒餅油條' },
+                { id: '3-2', time: '11:00', title: '自由活動 / 休息', location: '-', type: 'rest', icon: 'ph-sun', note: '建議回飯店休息或找咖啡廳，為晚上蓄力' },
+                { id: '3-3', time: '19:00', title: 'Doja Cat 演唱會', location: '高雄巨蛋', type: 'music', icon: 'ph-music-notes', note: '🎤 記得提早入場安檢', highlight: true },
+                { id: '3-4', time: '22:30', title: '瑞豐夜市', location: '裕誠路/南屏路', type: 'food', icon: 'ph-moon', note: '演唱會散場覓食' },
+                { id: '3-5', time: '深夜', title: '回旅館休息', location: '旅館', type: 'sleep', icon: 'ph-moon' },
+            ],
+            '12/22': [
+                { id: '4-1', time: '10:00', title: '哆啦A夢展', location: '國立科學工藝博物館', type: 'art', icon: 'ph-camera', note: 'THE 哆啦A夢展，預留2-3小時', highlight: true },
+                { id: '4-2', time: '14:00', title: '左營龍虎塔', location: '蓮池潭', type: 'travel', icon: 'ph-sun', note: '龍口進虎口出，消災解厄' },
+                { id: '4-3', time: '16:30', title: '前往車站', location: '左營高鐵', type: 'travel', icon: 'ph-train', note: '準備返程' },
+                { id: '4-4', time: '17:00', title: '回台北', location: '台北', type: 'travel', icon: 'ph-train', note: '平安賦歸' },
+            ]
+        };
+
+        // --- State ---
+        let activeTab = '12/19';
+        let day2Plan = 'A'; // 'A' or 'B'
+        // Load completed items from local storage if available
+        let completedItems = new Set(JSON.parse(localStorage.getItem('kaohsiungTripCompleted') || '[]'));
+
+        // --- Render Functions ---
+
+        function renderTabs() {
+            const tabsContainer = document.getElementById('date-tabs');
+            tabsContainer.innerHTML = '';
+            
+            Object.keys(scheduleData).forEach(date => {
+                const btn = document.createElement('button');
+                const isActive = activeTab === date;
+                btn.className = `flex-1 py-3 px-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 ${
+                    isActive 
+                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50' 
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                }`;
+                btn.innerText = date;
+                btn.onclick = () => {
+                    activeTab = date;
+                    renderApp();
+                };
+                tabsContainer.appendChild(btn);
+            });
+        }
+
+        function renderDay2Toggle() {
+            const toggleContainer = document.getElementById('day2-toggle');
+            const btnA = document.getElementById('btn-plan-a');
+            const btnB = document.getElementById('btn-plan-b');
+
+            if (activeTab === '12/20') {
+                toggleContainer.classList.remove('hidden');
+                
+                // Update button styles based on day2Plan
+                if (day2Plan === 'A') {
+                    btnA.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all bg-indigo-100 text-indigo-700 shadow-sm';
+                    btnB.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all text-slate-400 hover:text-slate-600';
+                } else {
+                    btnA.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all text-slate-400 hover:text-slate-600';
+                    btnB.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all bg-teal-100 text-teal-700 shadow-sm';
+                }
+            } else {
+                toggleContainer.classList.add('hidden');
+            }
+        }
+
+        function renderFooter() {
+             const footerMsg = document.getElementById('footer-msg');
+             footerMsg.innerText = activeTab === '12/22' ? '旅程結束，期待下次相見！' : '今天的行程結束了，晚安！';
+        }
+
+        function getDayList() {
+            if (activeTab === '12/20') {
+                return [...scheduleData['12/20'].options[day2Plan], ...scheduleData['12/20'].evening];
+            }
+            return scheduleData[activeTab];
+        }
+
+        function getTypeColor(type) {
+            switch (type) {
+                case 'food': return 'bg-orange-100 text-orange-600 border-orange-200';
+                case 'music': return 'bg-purple-100 text-purple-600 border-purple-200';
+                case 'art': return 'bg-teal-100 text-teal-600 border-teal-200';
+                case 'bar': return 'bg-indigo-900 text-indigo-300 border-indigo-700';
+                case 'work': return 'bg-gray-800 text-gray-200 border-gray-600';
+                case 'travel': return 'bg-blue-100 text-blue-600 border-blue-200';
+                case 'sleep': return 'bg-slate-100 text-slate-500 border-slate-200';
+                default: return 'bg-gray-100 text-gray-600';
+            }
+        }
+
+        function toggleComplete(id) {
+            if (completedItems.has(id)) {
+                completedItems.delete(id);
+            } else {
+                completedItems.add(id);
+            }
+            // Save to local storage
+            localStorage.setItem('kaohsiungTripCompleted', JSON.stringify([...completedItems]));
+            renderTimeline(); // Re-render only timeline for performance, though full re-render is fine here
+        }
+
+        function openMap(location) {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location + ' 高雄')}`, '_blank');
+        }
+
+        function setDay2Plan(plan) {
+            day2Plan = plan;
+            renderApp();
+        }
+
+        function renderTimeline() {
+            const listContainer = document.getElementById('timeline-list');
+            listContainer.innerHTML = '';
+            const items = getDayList();
+
+            items.forEach(item => {
+                const isCompleted = completedItems.has(item.id);
+                
+                // Outer Wrapper
+                const wrapper = document.createElement('div');
+                wrapper.className = `relative z-10 pl-10 transition-all duration-300 ${isCompleted ? 'opacity-50 grayscale' : ''}`;
+
+                // Checkbox Button
+                const checkBtn = document.createElement('button');
+                checkBtn.className = `absolute left-0 top-1.5 w-8 h-8 rounded-full flex items-center justify-center border-2 bg-white transition-colors ${
+                    isCompleted 
+                    ? 'border-indigo-400 text-indigo-500' 
+                    : 'border-slate-300 text-slate-300 hover:border-indigo-400 hover:text-indigo-400'
+                }`;
+                checkBtn.innerHTML = isCompleted ? '<i class="ph-fill ph-check-circle text-xl"></i>' : '<i class="ph ph-circle text-xl"></i>';
+                checkBtn.onclick = () => toggleComplete(item.id);
+
+                // Card
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow ${item.highlight ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''}`;
+
+                // Card Header
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'flex justify-between items-start mb-2';
+                
+                // Time & Tag
+                const timeTagDiv = document.createElement('div');
+                timeTagDiv.className = 'flex items-center gap-2';
+                timeTagDiv.innerHTML = `<span class="px-2 py-1 rounded text-xs font-bold border ${getTypeColor(item.type)}">${item.time}</span>`;
+                if (item.highlight) {
+                    timeTagDiv.innerHTML += `<span class="flex items-center gap-1 text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold">★ 重點</span>`;
+                }
+
+                // Map Button
+                const mapBtn = document.createElement('button');
+                mapBtn.className = 'text-slate-400 hover:text-blue-500 transition-colors';
+                mapBtn.title = '在 Google Maps 開啟';
+                mapBtn.innerHTML = '<i class="ph-fill ph-navigation-arrow text-lg"></i>';
+                mapBtn.onclick = () => openMap(item.location !== '-' ? item.location : item.title);
+
+                headerDiv.appendChild(timeTagDiv);
+                headerDiv.appendChild(mapBtn);
+
+                // Title
+                const title = document.createElement('h3');
+                title.className = `font-bold text-lg mb-1 flex items-center gap-2 ${isCompleted ? 'line-through text-slate-400' : 'text-slate-800'}`;
+                title.innerHTML = `<i class="${item.icon} opacity-70"></i> ${item.title}`;
+
+                // Location
+                let locationDiv = '';
+                if (item.location !== '-') {
+                    locationDiv = `<div class="flex items-center gap-1 text-slate-500 text-xs mb-2">
+                        <i class="ph-fill ph-map-pin"></i> ${item.location}
+                    </div>`;
+                }
+
+                // Note
+                let noteDiv = '';
+                if (item.note) {
+                    noteDiv = `<div class="bg-slate-50 p-2 rounded-lg text-sm text-slate-600 flex gap-2 items-start mt-2">
+                        <i class="ph-fill ph-info text-indigo-400 mt-0.5 flex-shrink-0"></i> ${item.note}
+                    </div>`;
+                }
+
+                // Assemble Card
+                card.appendChild(headerDiv);
+                card.appendChild(title);
+                if(locationDiv) card.innerHTML += locationDiv;
+                if(noteDiv) card.innerHTML += noteDiv;
+
+                wrapper.appendChild(checkBtn);
+                wrapper.appendChild(card);
+                listContainer.appendChild(wrapper);
+            });
+        }
+
+        // --- Main Render Loop ---
+        function renderApp() {
+            renderTabs();
+            renderDay2Toggle();
+            renderTimeline();
+            renderFooter();
+        }
+
+        // Initialize
+        renderApp();
+
+    </script>
+</body>
+</html>
